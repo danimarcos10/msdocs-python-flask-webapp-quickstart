@@ -32,11 +32,32 @@ jobs:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
     
     - name: Get docker registry credentials from Azure Key Vault
-      uses: azure/CLI@v1
-      with:
-        inlineScript: |
-          echo "REGISTRY_USERNAME=$(az keyvault secret show --name ${{ env.KEY_VAULT_SECRET_NAME_ACR_USERNAME }} --vault-name ${{ env.KEY_VAULT_NAME }} --query value -o tsv)" >> $GITHUB_ENV
-          echo "REGISTRY_PASSWORD=$(az keyvault secret show --name ${{ env.KEY_VAULT_SECRET_NAME_ACR_PASSWORD }} --vault-name ${{ env.KEY_VAULT_NAME }} --query value -o tsv)" >> $GITHUB_ENV
+      id: get-credentials
+      run: |
+        echo "Retrieving ACR credentials from Key Vault..."
+        
+        # Get username from Key Vault
+        REGISTRY_USERNAME=$(az keyvault secret show --name ${{ env.KEY_VAULT_SECRET_NAME_ACR_USERNAME }} --vault-name ${{ env.KEY_VAULT_NAME }} --query value -o tsv)
+        if [ -z "$REGISTRY_USERNAME" ]; then
+          echo "Error: Failed to retrieve ACR username from Key Vault"
+          exit 1
+        fi
+        
+        # Get password from Key Vault
+        REGISTRY_PASSWORD=$(az keyvault secret show --name ${{ env.KEY_VAULT_SECRET_NAME_ACR_PASSWORD }} --vault-name ${{ env.KEY_VAULT_NAME }} --query value -o tsv)
+        if [ -z "$REGISTRY_PASSWORD" ]; then
+          echo "Error: Failed to retrieve ACR password from Key Vault"
+          exit 1
+        fi
+        
+        # Set environment variables for subsequent steps
+        echo "REGISTRY_USERNAME=$REGISTRY_USERNAME" >> $GITHUB_ENV
+        echo "REGISTRY_PASSWORD=$REGISTRY_PASSWORD" >> $GITHUB_ENV
+        
+        # Mask the password in logs
+        echo "::add-mask::$REGISTRY_PASSWORD"
+        
+        echo "Successfully retrieved ACR credentials from Key Vault"
     
     - name: Login to Azure Container Registry
       uses: azure/docker-login@v1
@@ -47,7 +68,7 @@ jobs:
     
     - name: Set image version
       id: image-version
-      run: echo "::set-output name=version::$(echo ${GITHUB_REF#refs/heads/})-$(date +'%Y.%m.%d.%H.%M')"
+      run: echo "version=$(echo ${GITHUB_REF#refs/heads/})-$(date +'%Y.%m.%d.%H.%M')" >> $GITHUB_OUTPUT
     
     - name: Build and push image
       run: |
