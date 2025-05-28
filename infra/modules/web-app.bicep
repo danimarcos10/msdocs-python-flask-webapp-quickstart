@@ -16,10 +16,32 @@ param siteConfig object
 @description('App settings as key-value pairs')
 param appSettingsKeyValuePairs object
 
+@description('Docker registry server URL')
+@secure()
+param dockerRegistryServerUrl string
+
+@description('Docker registry server username')
+@secure()
+param dockerRegistryServerUserName string
+
+@description('Docker registry server password')
+@secure()
+param dockerRegistryServerPassword string
+
 @description('Tags to apply to the Web App')
 param tags object = {}
 
-var appSettings = [for key in items(appSettingsKeyValuePairs): {
+// Docker app settings
+var dockerAppSettings = {
+  DOCKER_REGISTRY_SERVER_URL: dockerRegistryServerUrl
+  DOCKER_REGISTRY_SERVER_USERNAME: dockerRegistryServerUserName
+  DOCKER_REGISTRY_SERVER_PASSWORD: dockerRegistryServerPassword
+}
+
+// Combine app settings with docker settings
+var combinedAppSettings = union(appSettingsKeyValuePairs, dockerAppSettings)
+
+var appSettings = [for key in items(combinedAppSettings): {
   name: key.key
   value: key.value
 }]

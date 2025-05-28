@@ -28,7 +28,17 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
         
-    - name: Deploy Bicep template
+    - name: Deploy Key Vault
+      uses: azure/arm-deploy@v1
+      with:
+        subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resourceGroupName: ${{ env.AZURE_RESOURCE_GROUP }}
+        template: ./infra/key-vault.bicep
+        parameters: ./infra/key-vault.parameters.json
+        failOnStdErr: false
+        deploymentName: key-vault-deployment
+        
+    - name: Deploy Main Infrastructure
       uses: azure/arm-deploy@v1
       with:
         subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
@@ -36,19 +46,34 @@ jobs:
         template: ./infra/main.bicep
         parameters: ./infra/main.parameters.json
         failOnStdErr: false
+        deploymentName: main-infrastructure-deployment
         
-    - name: Get deployment outputs
-      id: deployment
+    - name: Get Key Vault deployment outputs
+      id: keyvault-deployment
       run: |
-        echo "Getting deployment outputs..."
+        echo "Getting Key Vault deployment outputs..."
         az deployment group show \
           --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-          --name main \
+          --name key-vault-deployment \
+          --query properties.outputs \
+          --output json
+          
+    - name: Get main deployment outputs
+      id: main-deployment
+      run: |
+        echo "Getting main deployment outputs..."
+        az deployment group show \
+          --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+          --name main-infrastructure-deployment \
           --query properties.outputs \
           --output json
           
     - name: Display deployment results
       run: |
         echo "Infrastructure deployment completed successfully!"
-        echo "Container Registry: ${{ steps.deployment.outputs.containerRegistryName }}"
-        echo "Web App URL: ${{ steps.deployment.outputs.webAppUrl }}" 
+        echo "Key Vault deployed and configured with service principal access"
+        echo "Container Registry credentials stored securely in Key Vault"
+        echo "Web App configured to use Key Vault secrets for ACR authentication"
+        echo "Container Registry: ${{ steps.main-deployment.outputs.containerRegistryName }}"
+        echo "Web App URL: ${{ steps.main-deployment.outputs.webAppUrl }}"
+        echo "Key Vault: ${{ steps.keyvault-deployment.outputs.keyVaultName }}" 

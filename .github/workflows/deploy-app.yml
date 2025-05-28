@@ -12,6 +12,9 @@ env:
   REGISTRY_LOGIN_SERVER: acrflaskdemods2024.azurecr.io
   IMAGE_BASE_NAME: flask-demo
   RESOURCE_GROUP: BCSAI2024-DEVOPS-STUDENTS-A-DEV
+  KEY_VAULT_NAME: kv-flask-demo-ds-2024
+  KEY_VAULT_SECRET_NAME_ACR_USERNAME: acr-username
+  KEY_VAULT_SECRET_NAME_ACR_PASSWORD: acr-password1
 
 jobs:
   build-and-push:
@@ -28,8 +31,19 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
     
+    - name: Get docker registry credentials from Azure Key Vault
+      uses: azure/CLI@v1
+      with:
+        inlineScript: |
+          echo "REGISTRY_USERNAME=$(az keyvault secret show --name ${{ env.KEY_VAULT_SECRET_NAME_ACR_USERNAME }} --vault-name ${{ env.KEY_VAULT_NAME }} --query value -o tsv)" >> $GITHUB_ENV
+          echo "REGISTRY_PASSWORD=$(az keyvault secret show --name ${{ env.KEY_VAULT_SECRET_NAME_ACR_PASSWORD }} --vault-name ${{ env.KEY_VAULT_NAME }} --query value -o tsv)" >> $GITHUB_ENV
+    
     - name: Login to Azure Container Registry
-      run: az acr login --name acrflaskdemods2024
+      uses: azure/docker-login@v1
+      with:
+        login-server: ${{ env.REGISTRY_LOGIN_SERVER }}
+        username: ${{ env.REGISTRY_USERNAME }}
+        password: ${{ env.REGISTRY_PASSWORD }}
     
     - name: Set image version
       id: image-version

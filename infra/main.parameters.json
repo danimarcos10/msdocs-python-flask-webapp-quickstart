@@ -17,6 +17,9 @@
       "webAppName": {
         "value": "webapp-flask-demo-ds-2024"
       },
+      "keyVaultName": {
+        "value": "kv-flask-demo-ds-2024"
+      },
       "containerRegistryImageName": {
         "value": "webappsimple"
       },
