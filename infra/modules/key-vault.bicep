@@ -13,6 +13,9 @@ param roleAssignments array = []
 @description('Optional. Tags of the resource.')
 param tags object = {}
 
+@description('Required. Object ID of the service principal that needs access to Key Vault secrets.')
+param servicePrincipalObjectId string
+
 resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' = {
   name: name
   location: location
@@ -41,6 +44,17 @@ resource keyVault_roleAssignments 'Microsoft.Authorization/roleAssignments@2022-
     principalType: contains(roleAssignment, 'principalType') ? roleAssignment.principalType : null
   }
 }]
+
+// Additional role assignment for the service principal
+resource servicePrincipalRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(keyVault.id, servicePrincipalObjectId, 'Key Vault Secrets User')
+  scope: keyVault
+  properties: {
+    roleDefinitionId: builtInRoleNames['Key Vault Secrets User']
+    principalId: servicePrincipalObjectId
+    principalType: 'ServicePrincipal'
+  }
+}
 
 var builtInRoleNames = {
   'Key Vault Administrator': subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '00482a5a-887f-4fb3-b363-3b7fe8e74483')

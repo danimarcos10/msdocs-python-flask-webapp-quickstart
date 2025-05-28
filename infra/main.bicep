@@ -45,13 +45,8 @@ module keyVault './modules/key-vault.bicep' = {
     name: keyVaultName
     location: location
     enableVaultForDeployment: true
-    roleAssignments: [
-      {
-        principalId: '7200f83e-ec45-4915-8c52-fb94147cfe5a'
-        roleDefinitionIdOrName: 'Key Vault Secrets User'
-        principalType: 'ServicePrincipal'
-      }
-    ]
+    servicePrincipalObjectId: '25d8d697-c4a2-479f-96e0-15593a830ae5'
+    roleAssignments: []
     tags: tags
   }
 }
