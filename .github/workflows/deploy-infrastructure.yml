@@ -1,0 +1,54 @@
+name: Deploy Infrastructure to Azure
+
+on:
+  push:
+    branches: [ main ]
+    paths: 
+      - 'infra/**'
+  pull_request:
+    branches: [ main ]
+    paths: 
+      - 'infra/**'
+  workflow_dispatch:
+
+env:
+  AZURE_RESOURCE_GROUP: BCSAI2024-DEVOPS-STUDENTS-A-DEV
+  AZURE_LOCATION: westeurope
+
+jobs:
+  deploy-infrastructure:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        
+    - name: Deploy Bicep template
+      uses: azure/arm-deploy@v1
+      with:
+        subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resourceGroupName: ${{ env.AZURE_RESOURCE_GROUP }}
+        template: ./infra/main.bicep
+        parameters: ./infra/main.parameters.json
+        failOnStdErr: false
+        
+    - name: Get deployment outputs
+      id: deployment
+      run: |
+        echo "Getting deployment outputs..."
+        az deployment group show \
+          --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+          --name main \
+          --query properties.outputs \
+          --output json
+          
+    - name: Display deployment results
+      run: |
+        echo "Infrastructure deployment completed successfully!"
+        echo "Container Registry: ${{ steps.deployment.outputs.containerRegistryName }}"
+        echo "Web App URL: ${{ steps.deployment.outputs.webAppUrl }}" 

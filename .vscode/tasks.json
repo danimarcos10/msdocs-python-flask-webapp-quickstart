@@ -1,0 +1,50 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "docker-build",
+            "label": "docker-build",
+            "platform": "python",
+            "dockerBuild": {
+                "tag": "flask-demo:latest",
+                "dockerfile": "${workspaceFolder}/Dockerfile",
+                "context": "${workspaceFolder}",
+                "pull": true
+            }
+        },
+        {
+            "type": "docker-run",
+            "label": "docker-run: debug",
+            "dependsOn": [
+                "docker-build"
+            ],
+            "platform": "python",
+            "dockerRun": {
+                "image": "flask-demo:latest",
+                "containerName": "flask-demo-debug",
+                "ports": [
+                    {
+                        "hostPort": 5000,
+                        "containerPort": 50505
+                    }
+                ],
+                "volumes": [
+                    {
+                        "localPath": "${workspaceFolder}",
+                        "containerPath": "/code",
+                        "permissions": "rw"
+                    }
+                ]
+            },
+            "python": {
+                "args": [
+                    "app:app",
+                    "--bind",
+                    "0.0.0.0:50505",
+                    "--reload"
+                ],
+                "module": "gunicorn"
+            }
+        }
+    ]
+} 
